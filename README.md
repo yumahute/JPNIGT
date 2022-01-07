@@ -1,11 +1,11 @@
-# example
+# JPNIGT
 We distribute executables and source files of the Japanese version of the Iowa Gambling Task. 
 # IGTA
 The cursor does not return to the center after selecting a card.(Use this one in yuma et al.(inprinting))
 # IGTB
 The cursor returns to the center after selecting a card.
 # Card version of IGT
-
+explain
 # Fixed point
 Before going to the next card, the subject makes a sound in our program, but not in PEBL.  
 If the chosen card has a lose, the card is black in our program, but red in PEBL.  
