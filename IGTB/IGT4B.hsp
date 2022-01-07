@@ -1,0 +1,786 @@
+// IGT4B : Iowa Gampling Task : アイオワ・ギャンブリング課題(2017) 
+// version 4B : グラフィック・サウンド・備考入力＋マウス始動計測版
+
+#packopt name "IGT4B"
+#packopt hide 1
+
+// ミリ秒タイマー準備
+#uselib "winmm.dll"
+#func timeBeginPeriod "timeBeginPeriod" sptr
+#func timeEndPeriod "timeEndPeriod" sptr
+#cfunc timeGetTime "timeGetTime"
+
+	timeBeginPeriod 1	; タイマーの精度を1msに設定
+
+	version = "4B"	; プログラムのバージョン
+	// 定数
+;	nTrial = 5		; @@@ 試行数（デバッグ用) @@@
+	nTrial = 100	; 試行数
+	nInst = 3		; 教示数
+	nDeck = 4		; デッキ数
+	nCard = 40		; カード枚数（デッキ毎）
+	
+	// グラフィックス設定
+	CardW = 200		; カード幅
+	CardH = 300		; カード高
+	CardGap = 100	; カード間隔
+	FW = 50			; 顔画像幅
+	FH = 50			; 顔画像高
+	
+	// フォント設定
+	InstFont = "ＭＳ ゴシック"		; 教示フォント
+	InstSize = 24					; 教示サイズ
+	MessFont = "ＭＳ ゴシック"		; メッセージフォント
+	MessSize = 36					; メッセージサイズ
+	CardFont = "ＭＳ ゴシック"		; カードフォント
+	CardSize = 48					; カードサイズ
+	LabelFont = "ＭＳ ゴシック"		; ラベルフォント
+	LabelSize = 32					; ラベルサイズ
+	GScaleFont = "ＭＳ ゴシック"	; 目盛補助数字フォント
+	GScaleSize = 20					; 目盛補助数字サイズ
+	
+	// 呈示時間
+	TrialDelay =  50		; 試行間間隔  500ms; (10ms単位)
+	SelDelay   =  100		; 選択遅延  1,000ms; (10ms単位) 
+	RewardDelay   =  100	; 獲得遅延  1,000ms; (10ms単位)
+	PenaltyDelay  =  100	; 損失遅延  1,000ms; (10ms単位)
+	InterMess  =   50		; メッセージ間隔 500ms; (10ms単位)
+	
+	// 金額 (※ドル表記，呈示は100倍して円表記)
+	// 前借（当初額）
+	Borrow = 2000
+	// カード毎の獲得金額; Win(nDeck) 
+	dim Win, 4
+	Win = 100, 100, 50, 50	; デッキA, B, C, D
+	// カード毎の損失金額; Lose(nDeck, nCard); "-1" は「赤いカード」
+	dim Lose, 4, 40	
+	Lose(0, 0) =   0 : Lose(0, 1) =   0 : Lose(0, 2) = 150 : Lose(0, 3) =   0
+	Lose(0, 4) = 300 : Lose(0, 5) =   0 : Lose(0, 6) = 200 : Lose(0, 7) =   0
+	Lose(0, 8) = 250 : Lose(0, 9) = 350 : Lose(0,10) =   0 : Lose(0,11) = 350
+	Lose(0,12) =   0 : Lose(0,13) = 250 : Lose(0,14) = 200 : Lose(0,15) =   0
+	Lose(0,16) = 300 : Lose(0,17) = 150 : Lose(0,18) =   0 : Lose(0,19) =   0
+	Lose(0,20) =   0 : Lose(0,21) = 300 : Lose(0,22) =   0 : Lose(0,23) = 350
+	Lose(0,24) =   0 : Lose(0,25) = 200 : Lose(0,26) = 250 : Lose(0,27) = 150
+	Lose(0,28) =   0 : Lose(0,29) =   0 : Lose(0,30) = 350 : Lose(0,31) = 200
+	Lose(0,32) = 250 : Lose(0,33) =   0 : Lose(0,34) =   0 : Lose(0,35) =   0
+	Lose(0,36) = 150 : Lose(0,37) = 300 : Lose(0,38) =   0 : Lose(0,39) =   0
+	Lose(1, 0) =  -1 : Lose(1, 1) =  -1 : Lose(1, 2) =   0 : Lose(1, 3) =  -1
+	Lose(1, 4) =   0 : Lose(1, 5) =  -1 : Lose(1, 6) =   0 : Lose(1, 7) =   0
+	Lose(1, 8) =1250 : Lose(1, 9) =   0 : Lose(1,10) =  -1 : Lose(1,11) =  -1
+	Lose(1,12) =   0 : Lose(1,13) =1250 : Lose(1,14) =   0 : Lose(1,15) =  -1
+	Lose(1,16) =  -1 : Lose(1,17) =   0 : Lose(1,18) =   0 : Lose(1,19) =   0
+	Lose(1,20) =1250 : Lose(1,21) =   0 : Lose(1,22) =  -1 : Lose(1,23) =  -1
+	Lose(1,24) =   0 : Lose(1,25) =  -1 : Lose(1,26) =   0 : Lose(1,27) =  -1
+	Lose(1,28) =   0 : Lose(1,29) =   0 : Lose(1,30) =  -1 : Lose(1,31) =1250
+	Lose(1,32) =   0 : Lose(1,33) =  -1 : Lose(1,34) =   0 : Lose(1,35) =  -1
+	Lose(1,36) =   0 : Lose(1,37) =  -1 : Lose(1,38) =   0 : Lose(1,39) =   0
+	Lose(2, 0) =   0 : Lose(2, 1) =   0 : Lose(2, 2) =  50 : Lose(2, 3) =   0
+	Lose(2, 4) =  50 : Lose(2, 5) =   0 : Lose(2, 6) =  50 : Lose(2, 7) =   0
+	Lose(2, 8) =  50 : Lose(2, 9) =  50 : Lose(2,10) =   0 : Lose(2,11) =  25
+	Lose(2,12) =  75 : Lose(2,13) =   0 : Lose(2,14) =   0 : Lose(2,15) =   0
+	Lose(2,16) =  25 : Lose(2,17) =  75 : Lose(2,18) =   0 : Lose(2,19) =  50
+	Lose(2,20) =   0 : Lose(2,21) =   0 : Lose(2,22) =   0 : Lose(2,23) =  50
+	Lose(2,24) =  25 : Lose(2,25) =  50 : Lose(2,26) =   0 : Lose(2,27) =   0
+	Lose(2,28) =  75 : Lose(2,29) =  50 : Lose(2,30) =   0 : Lose(2,31) =   0
+	Lose(2,32) =   0 : Lose(2,33) =  25 : Lose(2,34) =  25 : Lose(2,35) =   0
+	Lose(2,36) =  75 : Lose(2,37) =   0 : Lose(2,38) =  50 : Lose(2,39) =  75
+	Lose(3, 0) =  -1 : Lose(3, 1) =   0 : Lose(3, 2) =  -1 : Lose(3, 3) =   0
+	Lose(3, 4) =   0 : Lose(3, 5) =  -1 : Lose(3, 6) =  -1 : Lose(3, 7) =   0
+	Lose(3, 8) =   0 : Lose(3, 9) = 250 : Lose(3,10) =  -1 : Lose(3,11) =  -1
+	Lose(3,12) =   0 : Lose(3,13) =   0 : Lose(3,14) =  -1 : Lose(3,15) =   0
+	Lose(3,16) =   0 : Lose(3,17) =   0 : Lose(3,18) =  -1 : Lose(3,19) = 250
+	Lose(3,20) =   0 : Lose(3,21) =  -1 : Lose(3,22) =   0 : Lose(3,23) =   0
+	Lose(3,24) =  -1 : Lose(3,25) =  -1 : Lose(3,26) =  -1 : Lose(3,27) =   0
+	Lose(3,28) = 250 : Lose(3,29) =   0 : Lose(3,30) =   0 : Lose(3,31) =  -1
+	Lose(3,32) =   0 : Lose(3,33) =  -1 : Lose(3,34) = 250 : Lose(3,35) =  -1
+	Lose(3,36) =   0 : Lose(3,37) =   0 : Lose(3,38) =  -1 : Lose(3,39) =   0
+	
+	// グラフ数値
+	nTic = 9			// 補助目盛（スケール上の数値）数
+	sdim GFig, 8, nTic
+	GFig(0) = "   0円" : GFig(1) = "10万円" : GFig(2) = "20万円"
+	Gfig(3) = "30万円" : GFig(4) = "40万円" : GFig(5) = "50万円"
+	GFig(6) = "60万円" : GFig(7) = "70万円" : GFig(8) = "80万円"
+	
+	// 教示メッセージボックス
+	InstW = 640				; 教示メッセージボックス幅
+	InstH = 420				; 教示メッセージボックス高
+	
+	// デッキ内カード位置
+	dim DeckPos, nDeck		; A/B/C/D各デッキ内の現在のカード位置
+	repeat nDeck
+		DeckPos(cnt) = -1	; "-1" (デッキ選択なし)で初期化
+	loop
+	
+	// 反応データ保存配列準備	
+	// 試行番号
+	dim Trial, nTrial
+	repeat nTrial
+		Trial(cnt) = cnt + 1	; ※保存反応データの試行番号は1から開始
+	loop
+	// デッキ名
+	sdim DeckName, 1, nDeck
+	DeckName = "A", "B", "C", "D"
+	
+	// 試行毎の反応データ
+	// 選択デッキ
+	sdim Deck, 1, nTrial	; "A" | "B" | "C" | "D"
+	repeat nTrial
+		Deck = "X"			; "X" (デッキ選択なし)で初期化
+	loop
+	dim Reward, nTrial		; 獲得金額
+	dim Penalty, nTrial		; 損失金額
+	dim Net,   nTrial		; 差引（獲得金額 - 損失金額）
+	dim Total, nTrial		; 累積金額
+	dim Debt,  nTrial		; 借金額
+	dim RT,    nTrial		; 反応時間(msec)
+	dim MOnset, nTrial		; マウス移動オンセット(msec) ; @v2B
+		
+	// 画像・音声準備 @ v2A
+	
+	// 画像・音声ファイル
+	WinFace   = "HappyFace.gif"
+	LoseFace  = "SadFace.gif"
+	WinSound  = "Sound_Win.wav"
+	LoseSound = "Sound_Lose.wav"
+	PromSound = "Prompt.wav"
+	
+#pack "HappyFace.gif"
+#pack "SadFace.gif"
+#pack "Sound_Win.wav"
+#pack "Sound_Lose.wav"
+#pack "Prompt.wav"
+
+	// バッファ1に獲得顔画像をロード
+	buffer 1
+	cls 0
+	picload WinFace, 1
+	// バッファ2に損失顔画像をロード
+	buffer 2
+	cls 0
+	picload LoseFace, 1
+	
+	gsel 0		// バッファ0を表示対象に @ v2A
+	
+	// バッファ3に獲得音声をロード
+	mmload WinSound, 3, 0
+	
+	// バッファ4に損失音声をロード
+	mmload LoseSound, 4, 0
+	
+	// バッファ5にプロンプト音声をロード
+	mmload PromSound, 5, 0
+
+
+	// ===== 実験：カード選択課題 =====
+
+;	mouse -1					; マウス表示OFF
+	
+	DisplayW = ginfo_dispx		; 全画面幅
+	DisplayH = ginfo_dispy		; 全画面高
+	bgscr 0, DisplayW, DisplayH, 0, 0, 0	; 全画面の初期化
+	cls 0
+	
+	gsel 0, 1	; @ v2A
+	
+	// 備考の入力	; @ v3
+	objmode 2
+	font GScaleFont, GScaleSize
+	mes ""
+	mes "　＊＊　アイオワギャンブリング課題実験(IGT4B)　＊＊ "
+	mes ""
+	Comment = ""
+	mes "　・備考（氏名・実験条件など）を入力してください："
+	mes ""
+	pos 20, 100
+	input Comment, 500
+	mes ""
+	objsize 100, 50
+	button goto "実験開始", *exp
+	stop
+
+*exp							; @ v3
+	cls 0
+	// 教示呈示位置
+	InstPosX = DisplayW / 4
+	InstPosY = DisplayH / 6
+	font InstFont, InstSize		; 教示フォント設定
+	
+	// 実験前教示(1)
+	color 0, 0, 0			; 黒
+	font InstFont, InstSize		; 教示フォント設定
+	pos InstPosX, InstPosY
+	mes "　あなたの前のスクリーンに，Ａ，Ｂ，Ｃ，Ｄの4組のカードが示されます。"
+	mes ""
+	mes "　ゲームを始めたら，あなたが選んだ組のカードを一度に一枚ずつ選んで
+	mes ""
+	mes "クリックしてください。
+	mes ""
+	mes "　あなたがカードを選ぶたびに，あなたがいくら獲得したかが，コンピュー"
+	mes ""
+	mes "ターの画面に表示されます。あなたがどのくらいのお金を獲得するかは，私に"
+	mes ""
+	mes "も分かりません。ゲームを進めていくと分かります。あなたが勝つたびに，"
+	mes ""
+	mes "緑色の線が長くなります。"
+	mes ""
+	mes "　カードをクリックすると，あなたがお金を獲得したことがコンピューター
+	mes ""
+	mes "に示されるときもありますが，あなたがお金を失ったことが示されるときも
+	mes ""
+	mes "あります。"
+	mes ""
+	mes "　あなたがいつ，どのくらい負けるかは，私には分かりません。ゲームを進め"
+	mes ""
+	mes "ていくと分かります。あなたが負けるたびに，緑色の線は短くなります。"
+	mes ""
+	mes ""
+	mes "　マウスをクリックして次に進んでください。"
+	
+	gosub *WaitClick
+	
+	// 実験前教示(2)
+	color 0, 0, 0				; 黒
+	font InstFont, InstSize		; 教示フォント設定	
+	pos InstPosX, InstPosY
+	mes "　あなたは，いつでも自由にカードの組を変えることができますし，好きな"
+	mes ""
+	mes "だけ何回変えても構いません。"
+	mes ""
+	mes "　このゲームの目標は，できるだけ多くのお金を獲得し，できるだけお金を"
+	mes ""
+	mes "失わないことです。"
+	mes ""
+	mes "　ゲームがいつ終わるかは分かりません。コンピューターが停止するまで，"
+	mes ""
+	mes "とにかくゲームを続けてください。"
+	mes "
+	mes "　ゲームを始めるために，20万円をあなたにお貸します（緑の線で示されて"
+	mes ""
+	mes "います）。"
+	mes ""
+	mes "　赤の線は，あなたが勝ったか負けたかを私たちが確かめる前に，ゲームを"
+	mes ""
+	mes "するためにあなたがいくら借りていて，いくら返さなくてはならないかを知"
+	mes ""
+	mes "らせるためのものです。"
+	mes ""
+	mes ""
+	mes "　マウスをクリックして次に進んでください。"
+	
+	gosub *WaitClick
+	
+	// 実験前教示(3)
+	color 0, 0, 0				; 黒
+	font InstFont, InstSize		; 教示フォント設定
+	pos InstPosX, InstPosY
+	mes "　あなたへの唯一のヒント，そして覚えておくべき最も重要なことは，次の"
+	mes ""
+	mes "通りです：これら4つのカードの組の中には，他の組より不利なものがあり，"
+	mes ""
+	mes "勝つためには，不利な組を避けるようにしなければなりません。どんなにお金"
+	mes ""
+	mes "を失ったとしても，最も不利なカードの組を避ければ，あなたには勝つ可能性"
+	mes ""
+	mes "があります。"
+	mes ""
+	mes "　なお，ゲームが始まってから，コンピューターがカードの順番を変えること"
+	mes ""
+	mes "はありません。コンピューターは，でたらめにあなたのお金を減らすのではな"
+	mes ""	
+	mes "く，あなたが最後に引いたカードを基にお金を減らします。"
+	mes ""
+	mes ""
+	mes "　何か質問があれば，調査者に今尋ねてください。"
+	mes ""
+	mes ""
+	mes "　質問がなければ，マウスをクリックして，始めてください。"
+
+	gosub *WaitClick
+	
+	// カード選択画面
+	
+	// ボタン(カード選択) 設置
+	font CardFont, CardSize
+	
+	// カード表示位置
+	dim CX, nDeck
+	CY = (DisplayH / 2)
+	// カード「A」
+	CX(0) = (DisplayW / 2) - (CardW * 2) - CardGap - (CardGap / 2)
+	// カード「B」
+	CX(1) = (DisplayW / 2) - CardW - (CardGap / 2)
+	// カード「C」
+	CX(2) = (DisplayW / 2) + (CardGap / 2)
+	// カード「D」
+	CX(3) = (DisplayW / 2) + CardW + CardGap + (CardGap / 2)
+
+	// グラフ初期表示
+	// 「手持額」ラベル（デッキＡ左端の250ドット上）@ v2A 変更 @ v4
+	LCashX = CX(0)
+	LCashY = CY - 250
+	pos LCashX, LCashY
+	color 0, 0, 0		; 黒
+	font LabelFont, LabelSize
+	mes "手持額："				; ### @ v4 獲得額→手持額
+	LCashW = ginfo(14)
+	LCashH = ginfo(15)
+	// 手持額グラフ
+	GCashX = LCashX + LCashW + 10
+	GCashY = LCashY
+	pos GCashX, GCashY
+	color 40, 175, 12			; 緑(peacock green) @ v2
+	GCashW = Borrow / 10		; 手持額グラフの幅
+	GCashH = LCashH
+	boxf GCashX, GCashY, GCashX+GCashW, GCashY+GCashH
+
+	// 「借金額」ラベル（デッキＡ左端の200ドット上）
+	LDebtX = CX(0)
+	LDebtY = CY - 200
+	pos LDebtX, LDebtY
+	color 0, 0, 0
+	font LabelFont, LabelSize
+	mes "借金額："
+	LDebtW = ginfo(14)
+	LDebtH = ginfo(15)
+	// 借金額グラフ
+	GDebtX = LDebtX + LDebtW + 10
+	GDebtY = LDebtY
+	pos GDebtX, GDebtY
+	color 204, 0, 0				; 赤(carmine) @ v2
+	GDebtW = Borrow / 10		; 借金額グラフの幅
+	GDebtH = LDebtH + 2			; ※獲得額グラフの高さに合わせる
+	boxf GDebtX, GDebtY, GDebtX+GDebtW, GDebtY+GDebtH
+	// グラフ目盛
+	GScaleX = GCashX
+	GScaleY = GCashY - 20		; 手持額グラフの20ドット上
+	GScaleW = GCashW * 4		; 80万円まで
+	GScaleH = 10
+	color 0, 0, 0
+	boxf GScaleX, GScaleY-1, GSCaleX + GScaleW, GScaleY+1
+	repeat nTic
+		boxf cnt*100+GScaleX-1, GScaleY-5, cnt*100+GScaleX+1, GSCaleY+5
+	loop
+	// グラフ目盛補助数値
+	GFigX = GScaleX - 30
+	GFigY = GScaleY - 30
+	font GScaleFont, GScaleSize
+	color 0, 0, 0
+	repeat nTic
+		pos GFigX + 100*cnt, GFigY
+		mes GFig(cnt)
+	loop
+	
+	// デッキ名ラベル
+	font CardFont, CardSize
+	DX = CX(0) + (CardW / 2)
+	DY = CY + CardH + 20
+	color 0, 0, 0 			; 黒
+	repeat nDeck
+		pos DX + (CardW + CardGap)*cnt, DY
+		mes DeckName(cnt)
+	loop
+		
+	// プロンプト表示位置（デッキＡ左端の100ドット上）; v2A
+	MX = (DisplayW / 2) - (CardW * 2) - CardGap - (CardGap / 2)
+	MY = (DisplayH / 2) - 100
+	
+	// 顔画像表示位置 ; @ v2A
+	FX = MX - FW - 5
+	FY = MY - 10
+	
+	// マウスホーム位置 ; @ v2B
+	OX = (DisplayW / 2)
+	OY = (DisplayH / 2) + (CardH / 2)
+
+	// ====> 課題試行 main loop ====>
+	
+	iTotal = Borrow		; 累計金額 = 前借 からスタート
+	GCash = iTotal		; グラフ表示所持金 = 累計金額からスタート
+	MoreBorrow = 0		; 借金の追加回数：0からスタート
+	ButtonPushed = 0	; ボタンが押されていない状態からスタート
+	
+	repeat nTrial
+		iTrial = cnt	; 試行番号
+	
+		// カードデッキ表示
+		repeat nDeck
+			iC = cnt
+			color 140, 140, 140			; 灰（カード影)		; @ v2A
+			boxf CX(iC)+5, CY+5, CX(iC)+CardW+5, CY+CardH+5
+			color 0, 0, 255				; 青（カード裏面）
+			boxf CX(iC), CY, CX(iC)+CardW, CY+CardH
+			BxN = CardW / 10
+			repeat 10 - 1				; fixed @ v.2
+				color 255, 255, 255 	; 白（ストライプ）
+				line CX(iC)+BxN*(cnt+1), CY, CX(iC)+BxN*(cnt+1), CY+CardH 
+			loop
+			ByN = CardH / 10
+			repeat 10 - 1				; fixed @ v.2
+				color 255, 255, 255 	; 白（ストライプ）
+				line CX(iC), CY+ByN*(cnt+1), CX(iC)+CardW, CY+ByN*(cnt+1)
+			loop
+		loop
+	
+		// マウスをホーム位置に移動 ; @ v2B
+		mouse OX, OY
+	
+		// プロンプトサウンド演奏 @ v2A
+		mmplay 5
+		
+		// カード選択プロンプト表示（デッキＡ左端の100ドット上）
+		color 0, 0, 0
+		font MessFont, MessSize
+		pos MX, MY
+		mes "マウスでクリックしてカードを選んでください。"
+		MW = ginfo(14)
+		MH = ginfo(15)
+	
+		// 時間計測状態フラグ
+		LClick = 0			; 左クリックまだ
+		Selected = 0		; カード選択まだ
+		MORecorded = 0		; マウスオンセット計測まだ ; @ v2B
+
+		// 反応時間計測スタート
+		iRTStart = timeGetTime()
+
+		// マウス移動オンセット測定	; @ v2B
+		if (MORecorded == 0) {
+			repeat
+				XDiff = abs(OX - ginfo_mx)
+				YDiff = abs(OY - ginfo_my)
+				if (XDiff > 1) | (YDiff > 1) {	; 1画素以上の移動あり
+					iMStarted = timeGetTime()
+					iMOnset = iMStarted - iRTStart
+					MORecorded = 1
+					break
+				}
+				await
+			loop
+		}
+	
+		repeat	; カード選択待ちループ
+			getkey LClick, 1	; マウス左ボタンクリック
+			if LClick {
+				SX = ginfo_mx : SY = ginfo_my
+				// Y座標チェック
+				if (SY >= CY) & (SY <= CY + CardH) {	; fixed @ v2 
+					// X座標チェック
+					repeat nDeck
+						if (CX(cnt) <= SX) & (SX <= (CX(cnt) + CardW)) {
+							jDeck = cnt
+							Selected = 1
+							break
+						}
+					loop
+				} else : continue
+				if (Selected = 1) : break
+			}
+			await
+		loop
+	
+		// 反応時間取得
+		iRTStop = timeGetTime()
+		iRT = iRTStop - iRTStart
+	
+		// カード選択プロンプト消去
+		color 255, 255, 255
+		boxf MX, MY, MX+MW+10, MY+MH
+	
+		// 選択デッキのカード位置更新
+;		jDeck = stat	; 選択されたデッキID ( 0:A/1:B/2:C/3:D )
+		DeckPos(jDeck) = DeckPos(jDeck) + 1		; デッキ内カード位置更新
+	
+		// デッキのカード残数0の場合はデッキの1枚目に戻る
+		if (DeckPos(jDeck) = nCard) {
+			DeckPos(jDeck) = 0
+		}
+	
+		iReward  = Win(jDeck) 					; 今回の獲得金額
+		// 損失金額とカード色の処理
+		CardColor = "Black"						; カード色は黒がデフォルト
+		iPenalty = Lose(jDeck, DeckPos(jDeck)) 	; 今回の損失金額
+		if iPenalty = -1 {	
+			iPenalty = 0						; "-1" は損失0 カード色は赤
+			CardColor = "Red"
+		}
+		// カード表面の色：赤(carmine) @ v.2
+		if (CardColor = "Red") : color 204, 0, 0 : else : color 0, 0, 0
+		boxf CX(jDeck), CY, CX(jDeck) + CardW, CY + CardH
+		
+		// 損失金額≠0の場合は損失を表示する
+		if iPenalty ! 0 : DispPenalty = 1 : else : DispPenalty = 0
+		
+		iNet  = iReward - iPenalty				; 今回の差引
+		iTotal = iTotal + iNet					; 今回までの累積金額
+		GCash = iTotal + (MoreBorrow * 2000)	; グラフ表示所持金
+	
+		// @@@ デバッグ用 @@@
+;		color 0, 255, 0
+;		pos 100, 100
+;		mes str(iTrial) + "," + str(jDeck) + "," + str(iReward) + "," + str(iPenalty) + "," +  str(iNet) + "," + str(iTotal) + "\n"
+
+		// 今回の選択へのフィードバック
+		// 選択デッキ表示
+		DeckChosen  = DeckName(jDeck)			; 選択デッキ( A/B/C/D )			
+		FeedBack = "あなたが選んだ：" + DeckChosen + "組"
+		color 0, 0, 0
+		font MessFont, MessSize
+		pos MX, MY
+		mes FeedBack
+		MW = ginfo(14)
+		MH = ginfo(15)
+	
+		wait SelDelay
+			
+		// 選択デッキ消去
+		color 255, 255, 255
+		boxf MX, MY, MX+MW, MY+MH
+
+		wait InterMess
+	
+		// 獲得金額表示
+		color 40, 175, 12				; 緑(peacock green) @ v.2
+		font MessFont, MessSize
+		Dollar = iReward
+		gosub *Dollar2Yen
+		FeedBack = Yen + "円を獲得しました。"
+		pos MX, MY
+		mes FeedBack
+		MW = ginfo(14)
+		MH = ginfo(15)
+	
+		// 獲得顔画像呈示 @ v2A
+		redraw 0
+		pos FX, FY
+		gcopy 1, 0, 0, FW, FH
+		redraw 1
+	
+		// 獲得サウンド演奏 @ v2A
+		mmplay 3
+
+		wait RewardDelay
+	
+;		mmstop
+	
+		// 獲得金額消去
+		color 255, 255, 255
+		boxf MX, MY, MX+MW, MY+MH
+	
+		// 獲得顔画像消去 @ v2A
+		redraw 0
+		color 255, 255, 255
+		boxf FX, FY, FX+FW, FY+FH
+		redraw 1
+	
+		// 損失金額0なら，損失金額表示をスキップ
+		if DispPenalty = 0 : goto *skipDispPenalty
+	
+		wait InterMess			; @ v2A
+		
+		// 損失金額表示
+		color 204, 0, 0			; 赤(carmine) @ v.2
+		pos MX, MY
+		font MessFont, MessSize
+		Dollar = iPenalty
+		gosub *Dollar2Yen
+		FeedBack = "しかし，また" + Yen + "円を失いました。"
+		mes FeedBack
+		MW = ginfo(14)
+		MH = ginfo(15)
+	
+		// 損失顔画像呈示 @ v2A
+		redraw 0
+		pos FX, FY
+		gcopy 2, 0, 0, FW, FH
+		redraw 1
+	
+		// 損失サウンド演奏 	; @ v2A
+		mmplay 4
+;		mci "play Sound_Lose.wav"
+
+		wait PenaltyDelay
+	
+;		mmstop
+	
+		// 損失金額消去
+		color 255, 255, 255
+		boxf MX, MY, MX+MW, MY+MH
+	
+		// 損失顔画像消去 @ v2A
+		redraw 0
+		color 255, 255, 255
+		boxf FX, FY, FX+FW, FY+FH
+		redraw 1
+
+*SkipDispPenalty
+	
+		// 前回のグラフを消去
+		redraw 0
+		color 255, 255, 255
+		boxf GCashX, GCashY, GCashX+GCashW, GCashY+GCashH
+		boxf GDebtX, GDebtY, GDebtX+GDebtW, GDebtY+GDebtH
+
+		// 手持ち金額がマイナスになった場合
+		if (GCash < 0) {
+			Borrow = Borrow + 2000		// 前借りを2000追加
+			MoreBorrow = MoreBorrow + 1	// 前借り追加回数
+			GCash = GCash + 2000		// グラフ表示所持金2000追加
+		}
+		// 手持額グラフ更新
+		GCashW = GCash / 10				; ##### fixed @ v.4
+		color 40, 175, 12				; 緑(peacock green) @ v.2
+		boxf GCashX, GCashY, GCashX+GCashW, GCashY+GCashH
+	
+		// 借金額グラフ更新
+		GDebtW = Borrow / 10		; ##### fixed @ v.4
+		color 204, 0, 0				; 赤(carmine) @ v.2
+		boxf GDebtX, GDebtY, GDebtX+GDebtW, GDebtY+GDebtH
+		redraw 1
+		
+		// 反応データの保存用配列
+		Deck(iTrial)  = DeckChosen			; 選択デッキ( A/B/C/D )
+		Reward(iTrial)   = iReward
+		Penalty(iTrial)  = iPenalty
+		Net(iTrial)   = iNet
+;		Total(iTrial) = iTotal
+		Total(iTrial) = GCash				; ### 変更 v.4 ###
+		Debt(iTrial)  = Borrow
+		MOnset(iTrial) = iMOnset	; @ v2B
+		RT(iTrial) = iRT
+		
+		wait TrialDelay
+	loop
+	// ====> 課題試行 mail loop 終了 ====>
+	
+	// 払戻金額
+	Payback = GCash - Borrow	; ##### fixed @ v.4
+	
+;	// ボタンのクリア
+;	clrobj
+	
+	// 反応データを.csvファイルに保存
+	SaveDat = ""
+	
+	// 備考をcsvファイル1行目に記入		; @ v3
+	SaveDat += "# " + Comment + "\n"
+
+	// CSVヘッダー
+	SaveDat += "Trial" + "," + "Deck" + "," + "Reward" + "," + "Penalty" + ","
+	SaveDat += "Net" + "," + "Total" + "," + "Debt" + ","
+	SaveDat += "MOnset" + "," + "RT" + "\n"
+
+	// 反応データ
+	repeat nTrial
+		SaveDat += str(Trial(cnt))  + "," + Deck(cnt) + "," 
+		SaveDat += str(Reward(cnt)) + "," + str(Penalty(cnt)) + "," 
+		SaveDat += str(Net(cnt))    + "," + str(Total(cnt)) + ","
+		SaveDat += str(Debt(cnt))   + "," 
+		SaveDat += str(MOnset(cnt)) + "," + str(RT(cnt)) + "\n"
+	loop
+
+	// ファイル名(IGT_v?_終了時点の日時情報.csv)
+	month  = str(gettime(1))
+	day    = str(gettime(3))
+	hour   = str(gettime(4))
+	minute = str(gettime(5))
+	second = str(gettime(6))
+	if strlen(month)  = 1 : month  = "0" + month
+	if strlen(day)    = 1 : day    = "0" + day
+	if strlen(hour)   = 1 : hour   = "0" + hour
+	if strlen(minute) = 1 : minute = "0" + minute
+	if strlen(second) = 1 : second = "0" + second
+	SaveFile =  "IGT_v" + str(version)
+	SaveFile += "_" + month +  day + hour + minute + second + ".csv"
+
+	// 反応をデータファイルに書き出し
+	notesel SaveDat
+	notesave SaveFile
+	
+	// 終了教示
+	cls
+	Dollar = Payback
+	if (Payback > 0) {
+		gosub *Dollar2Yen
+		PayLine1 =  "正味の獲得額："
+		PayLine1 += Yen
+		PayLine1 += "円"
+		PayLine2 =  "借りを返した後のあなたの正味の獲得額は："
+		PayLine2 += Yen
+		PayLine2 += "円です。"
+		color 0, 0, 0				; 黒
+		font InstFont, InstSize		; 教示フォント設定
+		pos InstPosX, InstPosY
+		mes PayLine1
+		mes ""
+		mes "　おめでとうございます！ゲームが終了しました"
+		mes ""
+		mes PayLine2
+		mes ""
+		mes "　実験へのご参加ありがとうございました"
+		mes ""
+		mes "　ゲームが終わったことを調査者に伝えてください。"
+	} else {
+		Dollar = abs(Payback)
+		gosub *Dollar2Yen
+		PayLine1 =  "正味の損失額："
+		PayLine1 += Yen
+		PayLine1 += "円"
+		PayLine2 =  "借りを返した後のあなたの正味の損失額は："
+		PayLine2 += Yen
+		PayLine2 += "円です。"
+		color 0, 0, 0				; 黒
+		font InstFont, InstSize		; 教示フォント設定
+		pos InstPosX, InstPosY
+		mes PayLine1
+		mes ""
+		mes "　ゲームが終了しました"
+		mes ""
+		mes PayLine2
+		mes ""
+		mes "　実験へのご参加ありがとうございました"
+		mes ""
+		mes "　ゲームが終わったことを調査者に伝えてください。"
+	}
+	
+	gosub *WaitClick
+	
+	timeEndPeriod 1		; タイマーの精度を復帰
+;	mouse
+	
+	end
+	
+// マウスの左クリックを待つサブルーチン
+*WaitClick	
+	LClick = 0
+	repeat
+		getkey LClick, 1	; マウス左ボタンクリック
+		if LClick {
+			break
+		}
+		await
+	loop
+	cls
+	wait 50
+return
+
+// ドル表記の金額（整数）を円表記の文字列に変換するサブルーチン
+*Dollar2Yen
+	Yen = "" : ManYen = "" : SenYen = ""
+	HyakuYen = "" : IchiYen = ""
+	if (Dollar >= 100) {
+		ManYen = Dollar / 100
+		Yen = Yen + str(ManYen) + "万"
+		Dollar = Dollar - (ManYen * 100)
+	} 
+	if (Dollar >= 10) {
+		SenYen = Dollar / 10
+		Yen = Yen + str(SenYen) + "千"
+		Dollar = Dollar - (SenYen * 10)
+	}
+	if (Dollar >= 1) {
+		Yen = Yen + str(Dollar) + "百"
+	}
+return
+
+end
